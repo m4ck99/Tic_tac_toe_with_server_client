@@ -1,88 +1,81 @@
-#include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <string.h>
+#include <netdb.h>
+#include "funcs.h"
 
 char grid[9] = {'-', '-', '-', '-', '-', '-', '-', '-', '-'};
 int player = 1, count = 0;
 char ch[3];
 
-void print_grid(void) {
-    system("clear");
-    printf("    1     2     3\n      |     |\na  %c  |  %c  |  %c\n _____|_____|_____\n      |     |\nb  %c  |  %c  |  %c\n _____|_____|_____\n      |     |\nc  %c  |  %c  |  %c \n      |     |     \n", 
-    grid[0], grid[1], grid[2],
-    grid[3], grid[4], grid[5], 
-    grid[6], grid[7], grid[8]);
-}
-int set_input(char* pos, char* x_or_o) {
-    if ((int)pos[0] < 97 || (int)pos[0] > 99 || pos[1] > '3' || pos[1] < '1') { //comparing against ascii values
-        printf("Invalid position!\n");
-        return;
-    }
-    int b = 0;
-    if (pos[0] == 'a') {
-        b = 0;
-    }
-    if (pos[0] == 'b') {
-        b = 3;
-    }
-    if (pos[0] == 'c') {
-        b = 6;
-    }
-    if (pos[1] == '2') {
-        b += 1;
-    }
-    if (pos[1] == '3') {
-        b += 2;
-    }
-    if (grid[b] == 'X' || grid[b] == 'O') {
-        printf("Already marked by player %d\n", (player == 1) ? 2 : 1);
-        return;
-    }
-    grid[b] = x_or_o[0];
-    print_grid();
-    player *= -1;
-}
-int check() {
-
-    if ((grid[0] == grid[1] && grid[1] == grid[2] && grid[0] != '-') ||  
-        (grid[3] == grid[4] && grid[4] == grid[5] && grid[3] != '-') ||  
-        (grid[6] == grid[7] && grid[7] == grid[8] && grid[6] != '-')) {
-            system("clear");
-            printf("Player %d won!!\n", (player == 1) ? 2 : 1);
-            return 1; 
-    }
-
-    if ((grid[0] == grid[3] && grid[3] == grid[6] && grid[0] != '-') ||  
-        (grid[1] == grid[4] && grid[4] == grid[7] && grid[1] != '-') ||  
-        (grid[2] == grid[5] && grid[5] == grid[8] && grid[2] != '-')) {
-            system("clear");
-            printf("Player %d won!!\n", (player == 1) ? 2 : 1);
-            return 1; 
-    }
-
-    if ((grid[0] == grid[4] && grid[4] == grid[8] && grid[0] != '-') ||  
-        (grid[2] == grid[4] && grid[4] == grid[6] && grid[2] != '-')) {
-            system("clear");
-            printf("Player %d won!!\n", (player == 1) ? 2 : 1);            
-            return 1; 
+int main(void) {
+    unsigned short int dec;
+    int sockfd, n, newsockfd, portno;
+    socklen_t clilen;
+    struct sockaddr_in serv_addr, cli_addr;
+    printf("(1) Host or (2) join?: ");
+    scanf("%hu", &dec);
+    if (dec == 1) {
+        player = 1;
+        sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        memset((char *)&serv_addr, 0, sizeof(serv_addr));
+        portno = 8080;
+        serv_addr.sin_family = AF_INET;
+        serv_addr.sin_port = htons(portno);
+        serv_addr.sin_addr.s_addr = INADDR_ANY;
+        bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+        listen(sockfd, 5);
+        clilen = sizeof(cli_addr);
+        newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen);
     }
     else {
-        return 0; 
+        player = 2;
+        char ip[15];
+        printf("Enter IP: ");
+        scanf("%s", ip);
+        struct hostent *server;
+        portno = 8080;
+        sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        server = gethostbyname(ip);
+        memset((char *)&serv_addr, 0, sizeof(serv_addr));
+        serv_addr.sin_family = AF_INET;
+        memcpy(&serv_addr.sin_addr.s_addr, server->h_addr, server->h_length);
+        serv_addr.sin_port = htons(portno);
+        connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
     }
-}
-
-int main(void) {
-    print_grid();
+    print_grid(grid);
     while (1) {
-        if (count == 9) 
-            break;
-        printf("Player %d: ", player == 1 ? 1 : 2);
-        scanf("%2s", &ch);
-        set_input(ch, (player == -1) ? "O" : "X");
-        if (check() == 1) {
-            break;
+        if (dec != 1) {
+            n = read(sockfd, &ch, sizeof(ch));
+            if (n < 0) {
+                printf("read failed\n");
+                exit(0);
+            }
+            set_input(ch, "O", grid, 2);
+            printf("Enter position: ");
+            scanf("%s", &ch);
+            n = write(sockfd, &ch, sizeof(ch));
+            set_input(ch, "X", grid, 1);
         }
-        count += 1;
+        else {
+            printf("Enter position: ");
+            scanf("%s", &ch);
+            printf("%d", ch);
+            n = write(sockfd, &ch, sizeof(ch));
+            set_input(ch, "X", grid, 1);
+            n = read(sockfd, &ch, sizeof(ch));
+            if (n < 0) {
+                printf("read failed\n");
+                exit(0);
+            }
+            set_input(ch, "O", grid, 2);
+        }
     }
+    close(newsockfd);
+    close(sockfd);
     return 0;
 }
