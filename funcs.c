@@ -8,7 +8,7 @@ void print_grid(char grid[]) {
     grid[3], grid[4], grid[5], 
     grid[6], grid[7], grid[8]);
 }
-int set_input(char* pos, char* x_or_o, char grid[], int player) {
+void set_input(char* pos, char* x_or_o, char grid[], int player) {
     if ((int)pos[0] < 97 || (int)pos[0] > 99 || pos[1] > '3' || pos[1] < '1') { //comparing against ascii values
         printf("Invalid position!\n");
         return;
