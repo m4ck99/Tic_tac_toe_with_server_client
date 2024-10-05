@@ -9,6 +9,9 @@
 #include <netdb.h>
 #include "funcs.h"
 #define PORT 8082
+#define SERVER "X"
+#define CLIENT "O"
+
 
 char grid[9] = {'-', '-', '-', '-', '-', '-', '-', '-', '-'};
 int player = 1, count = 0;
@@ -21,7 +24,7 @@ int main(void) {
     struct sockaddr_in serv_addr, cli_addr;
     printf("(1) Host or (2) join?: ");
     scanf("%hu", &dec);
-    if (dec == 1) {
+    if (dec == 1) { 
         player = 1;
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         memset((char *)&serv_addr, 0, sizeof(serv_addr));
@@ -36,7 +39,7 @@ int main(void) {
     }
     else {
         player = 2;
-        char ip[15];
+        char ip[INET_ADDRSTRLEN];
         printf("Enter IP: ");
         scanf("%s", ip);
         struct hostent *server;
@@ -51,34 +54,35 @@ int main(void) {
     }
     print_grid(grid);
     while (1) {
+        if (count == 9)
+            break;
         if (dec != 1) {
+            n = read(sockfd, ch, sizeof(ch));
+            set_input(ch, SERVER, grid, 2);
+            check(grid, 1);
             do {
-                n = read(sockfd, ch, sizeof(ch));
-                if (n >= 0) {
-                    break;
-                }
+                printf("Enter position: ");
+                scanf("%s", ch);
             }
-            while ( n < 0);
-            set_input(ch, "O", grid, 2);
-            printf("Enter position: ");
-            scanf("%s", ch);
+            while (validate(ch));
             n = write(sockfd, ch, sizeof(ch));
-            set_input(ch, "X", grid, 1);
+            set_input(ch, CLIENT, grid, 1);
+            check(grid, 2);
         }
         else {
-            printf("Enter position: ");
-            scanf("%s", ch);
-            n = write(newsockfd, ch, sizeof(ch));
-            set_input(ch, "X", grid, 1);
             do {
-                n = read(newsockfd, ch, sizeof(ch));
-                if (n >= 0) {
-                    break;
-                }
+                printf("Enter position: ");
+                scanf("%s", ch);
             }
-            while ( n < 0);
-            set_input(ch, "O", grid, 2);
-      }
+            while (validate(ch));
+            n = write(newsockfd, ch, sizeof(ch));
+            set_input(ch, SERVER, grid, 1);
+            check(grid, 2);
+            n = read(newsockfd, ch, sizeof(ch));
+            set_input(ch, CLIENT, grid, 2);
+            check(grid, 1);
+        }
+        count += 1;
     }
     close(newsockfd);
     close(sockfd);
