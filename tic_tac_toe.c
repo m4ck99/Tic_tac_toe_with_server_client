@@ -4,9 +4,11 @@
 #include <netinet/in.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <strings.h>
 #include <string.h>
 #include <netdb.h>
 #include "funcs.h"
+#define PORT 8082
 
 char grid[9] = {'-', '-', '-', '-', '-', '-', '-', '-', '-'};
 int player = 1, count = 0;
@@ -23,7 +25,7 @@ int main(void) {
         player = 1;
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         memset((char *)&serv_addr, 0, sizeof(serv_addr));
-        portno = 8080;
+        portno = PORT;
         serv_addr.sin_family = AF_INET;
         serv_addr.sin_port = htons(portno);
         serv_addr.sin_addr.s_addr = INADDR_ANY;
@@ -38,7 +40,7 @@ int main(void) {
         printf("Enter IP: ");
         scanf("%s", ip);
         struct hostent *server;
-        portno = 8080;
+        portno = PORT;
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         server = gethostbyname(ip);
         memset((char *)&serv_addr, 0, sizeof(serv_addr));
@@ -50,30 +52,33 @@ int main(void) {
     print_grid(grid);
     while (1) {
         if (dec != 1) {
-            n = read(sockfd, &ch, sizeof(ch));
-            if (n < 0) {
-                printf("read failed\n");
-                exit(0);
+            do {
+                n = read(sockfd, ch, sizeof(ch));
+                if (n >= 0) {
+                    break;
+                }
             }
+            while ( n < 0);
             set_input(ch, "O", grid, 2);
             printf("Enter position: ");
-            scanf("%s", &ch);
-            n = write(sockfd, &ch, sizeof(ch));
+            scanf("%s", ch);
+            n = write(sockfd, ch, sizeof(ch));
             set_input(ch, "X", grid, 1);
         }
         else {
             printf("Enter position: ");
-            scanf("%s", &ch);
-            printf("%d", ch);
-            n = write(sockfd, &ch, sizeof(ch));
+            scanf("%s", ch);
+            n = write(newsockfd, ch, sizeof(ch));
             set_input(ch, "X", grid, 1);
-            n = read(sockfd, &ch, sizeof(ch));
-            if (n < 0) {
-                printf("read failed\n");
-                exit(0);
+            do {
+                n = read(newsockfd, ch, sizeof(ch));
+                if (n >= 0) {
+                    break;
+                }
             }
+            while ( n < 0);
             set_input(ch, "O", grid, 2);
-        }
+      }
     }
     close(newsockfd);
     close(sockfd);

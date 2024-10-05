@@ -2,14 +2,13 @@
 #include <stdlib.h>
 
 void print_grid(char grid[]) {
-    // system("clear");
+    system("clear");
     printf("    1     2     3\n      |     |\na  %c  |  %c  |  %c\n _____|_____|_____\n      |     |\nb  %c  |  %c  |  %c\n _____|_____|_____\n      |     |\nc  %c  |  %c  |  %c \n      |     |     \n", 
     grid[0], grid[1], grid[2],
     grid[3], grid[4], grid[5], 
     grid[6], grid[7], grid[8]);
 }
 int set_input(char* pos, char* x_or_o, char grid[], int player) {
-    printf("%d", pos); 
     if ((int)pos[0] < 97 || (int)pos[0] > 99 || pos[1] > '3' || pos[1] < '1') { //comparing against ascii values
         printf("Invalid position!\n");
         return;
@@ -30,13 +29,12 @@ int set_input(char* pos, char* x_or_o, char grid[], int player) {
     if (pos[1] == '3') {
         b += 2;
     }
-    // if (grid[b] == 'X' || grid[b] == 'O') {
-    //     printf("Already marked by player %d\n", (player == 1) ? 2 : 1);
-    //     return;
-    // }
+    if (grid[b] == 'X' || grid[b] == 'O') {
+        printf("Already marked by player %d\n", (player == 1) ? 2 : 1);
+        return;
+    }
     grid[b] = x_or_o[0];
     print_grid(grid);
-    printf("B is %d\n", b);
     player = (player == 1) ? 2 : 1;
 }
 int check(char grid[], int player) {
